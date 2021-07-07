@@ -45,12 +45,13 @@ REQUEST_FORMAT = """{
                 [ H x W array of INTs represetning block types ],
                 ...
             ],
-            "modelName": STRING
-            "experimentName": STRING
+            "modelName": STRING,
+            "experimentName": STRING,
             "markedUplayable": BOOL,
             "endedEarly": BOOL,
             "surveyResults":{
                 "enjoyment": INT,
+                "ratedNovelty": INT,
                 "desiredNovelty": INT
             }
             ...

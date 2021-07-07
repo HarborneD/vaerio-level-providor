@@ -26,7 +26,7 @@ if __name__ == "__main__":
     }
 
     TEST_ENDPOINT = "http://localhost:5000/level"
-    # TEST_ENDPOINT = "https://vaerio-level-providor.herokuapp.com/level"
+    TEST_ENDPOINT = "https://vaerio-level-providor.herokuapp.com/level"
 
     req = urllib.request.Request(TEST_ENDPOINT)
     req.add_header('Content-Type', 'application/json; charset=utf-8')
