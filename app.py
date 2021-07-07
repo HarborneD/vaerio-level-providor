@@ -167,9 +167,7 @@ def feedback():
     db = psycopg2.connect(db_url)
     feedback_table_db = PlayerFeedbackTable(db)
     feedbackItems = feedback_table_db.GetAllItems()
-    return f"""
-    <pre>{json.dumps(feedbackItems)}</pre>
-    """
+    return {"feedbackItems":feedbackItems}
 
 
 @app.route("/level", methods=["GET", "POST"])
