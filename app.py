@@ -3,7 +3,7 @@ import json
 import time
 
 from flask import Flask, jsonify, request
-
+from flask_cors import CORS
 # import psycopg2
 # from db_interface import Query
 
@@ -11,6 +11,7 @@ from LevelEvaluators.RandomLevelGenerator import RandomLevelGenerator as LevelGe
 
 
 app = Flask(__name__)
+CORS(app)
 level_generator = LevelGenerator()
 
 
