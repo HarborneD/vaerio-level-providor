@@ -109,3 +109,16 @@ class PlayerFeedbackTable:
         c.execute(query)
         queries = c.fetchall()
         return queries
+    
+
+    def GetAllItems(self):
+        """
+        Returns all feedback items.
+        """
+        query = (
+            f"SELECT * FROM {self.table_name};"
+        )
+        c = self.db.cursor()
+        c.execute(query)
+        queries = c.fetchall()
+        return queries
