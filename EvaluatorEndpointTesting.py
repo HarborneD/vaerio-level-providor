@@ -27,7 +27,7 @@ if __name__ == "__main__":
     }
 
     TEST_ENDPOINT = "http://localhost:5000/level"
-    # TEST_ENDPOINT = "https://vaerio-level-providor.herokuapp.com/level"
+    TEST_ENDPOINT = "https://vaerio-level-providor.herokuapp.com/level"
 
     req = urllib.request.Request(TEST_ENDPOINT)
     req.add_header('Content-Type', 'application/json; charset=utf-8')
@@ -38,7 +38,7 @@ if __name__ == "__main__":
     with urllib.request.urlopen(req, data_bytes) as f:
         response_json = json.loads(f.read())
 
-    #AS FORM DATA
+    ### AS FORM DATA
     # data = parse.urlencode(TEST_LEVEL_REQUEST_NO_TELEMETRY).encode()
     # req =  request.Request(TEST_ENDPOINT, data=data) # this will make the method "POST"
     # with request.urlopen(req) as f:
