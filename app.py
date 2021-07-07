@@ -25,6 +25,7 @@ except ModuleNotFoundError:
 db_url = os.environ["DATABASE_URL"]
 
 #Create the table
+
 db = psycopg2.connect(db_url)
 feedback_table_db = PlayerFeedbackTable(db)
 feedback_table_db.CreateTable()
@@ -124,6 +125,8 @@ def IsLevelValid(request_data, proposed_level_data):
 
 
 def StoreTelemetryInDatabase(request_data):
+    db = psycopg2.connect(db_url)
+    feedback_table_db = PlayerFeedbackTable(db)
     feedback_table_db.SaveFeedback(
     time.time(),
     request_data["playerId"],

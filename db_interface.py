@@ -15,6 +15,11 @@ class PlayerFeedbackTable:
         self.db = db
 
 
+    def ExecuteQuery(self, query):
+        c = self.db.cursor()
+        c.execute(query)
+        self.db.commit()
+
     def CreateTable(self):
         query = f"CREATE TABLE IF NOT EXISTS {self.table_name} ("
         query += "id SERIAL PRIMARY KEY,"
@@ -22,16 +27,16 @@ class PlayerFeedbackTable:
         query += "player_id VARCHAR(100),"
         query += "experiment_name VARCHAR(100),"
         query += "model_name VARCHAR(100),"
-        query += "latent_vectors FLOAT[][]"
-        query += "level_representation FLOAT[][][]"
-        query += "marked_unplayable BOOL"
-        query += "ended_early BOOL"
-        query += "enjoyment FLOAT"
-        query += "rated_novelty FLOAT"
+        query += "latent_vectors FLOAT[][],"
+        query += "level_representation FLOAT[][][],"
+        query += "marked_unplayable BOOL,"
+        query += "ended_early BOOL,"
+        query += "enjoyment FLOAT,"
+        query += "rated_novelty FLOAT,"
         query += "desired_novelty FLOAT"
         query += ")"
         try:
-            self.execute_query(query)
+            self.ExecuteQuery(query)
         except psycopg2.errors.UniqueViolation:
             print("Table already exists?")
             pass
@@ -90,9 +95,7 @@ class PlayerFeedbackTable:
         rated_novelty,
         desired_novelty)
         
-        c = self.db.cursor()
-        c.execute(query)
-        self.db.commit()
+        self.ExecuteQuery(query)
 
 
     def GetAllItemsForExperiment(self, experiment_name: str):
