@@ -4,8 +4,8 @@ import time
 
 from flask import Flask, jsonify, request
 from flask_cors import CORS
-# import psycopg2
-# from db_interface import Query
+import psycopg2
+from db_interface import PlayerFeedbackTable
 
 from LevelEvaluators.RandomLevelGenerator import RandomLevelGenerator as LevelGenerator
 
@@ -15,20 +15,20 @@ CORS(app)
 level_generator = LevelGenerator()
 
 
-# try:
-#     from dotenv import load_dotenv
+try:
+    from dotenv import load_dotenv
 
-#     load_dotenv()
-# except ModuleNotFoundError:
-#     print("Couldn't load the local .env file.")
+    load_dotenv()
+except ModuleNotFoundError:
+    print("Couldn't load the local .env file.")
 
-# db_url = os.environ["DATABASE_URL"]
+db_url = os.environ["DATABASE_URL"]
 
-# #Create the table
-# db = psycopg2.connect(db_url)
-# query_db = Query(db)
-# query_db.create_query_table()
-# db.close()
+#Create the table
+db = psycopg2.connect(db_url)
+feedback_table_db = PlayerFeedbackTable(db)
+feedback_table_db.CreateTable()
+db.close()
 
 
 DEFAULT_LEVEL_DATA = []
@@ -44,6 +44,8 @@ REQUEST_FORMAT = """{
                 [ H x W array of INTs represetning block types ],
                 ...
             ],
+            "modelName": STRING
+            "experimentName": STRING
             "markedUplayable": BOOL,
             "endedEarly": BOOL,
             "surveyResults":{
@@ -58,6 +60,7 @@ RESPONSE_FORMAT = """
     {
         "requestId":STRING,
         "latentVector":[ N dimenstional vector ],
+        "modelName": STRING
         "experimentName":STRING,
         "levelRepresentation":[
             S x level slice representations of the form:
@@ -120,8 +123,19 @@ def IsLevelValid(request_data, proposed_level_data):
     return simulated_player_telemetry["playthroughTelemetry"]["didComplete"]
 
 
-def StoreInDatabase(request_data, response_data):
-    pass
+def StoreTelemetryInDatabase(request_data):
+    feedback_table_db.SaveFeedback(
+    time.time(),
+    request_data["playerId"],
+    request_data["telemetry"]["experimentName"],
+    request_data["telemetry"]["modelName"],
+    request_data["telemetry"]["latentVectors"],
+    request_data["telemetry"]["levelRepresentation"],
+    request_data["telemetry"]["markedUplayable"],
+    request_data["telemetry"]["endedEarly"],
+    request_data["telemetry"]["surveyResults"]["enjoyment"],
+    request_data["telemetry"]["surveyResults"]["ratedNovelty"],
+    request_data["telemetry"]["surveyResults"]["desiredNovelty"])
 
 
 def GetExperimentName():
@@ -161,7 +175,9 @@ def level():
 
     # (2) Translate Player Telemetry Data to Player Preferences
     data["playerPreferences"] = GetPlayerPreferenceFromPlayerTelemetry(player_request_data=data)
-    
+
+    StoreTelemetryInDatabase(request_data=data)
+        
 
     # (3) Generate a level candidate
     proposed_level_data = level_generator.GenerateLevel(request_data=data)
@@ -185,16 +201,14 @@ def level():
         proposed_level_data = DEFAULT_LEVEL_DATA
 
 
-    # Form Response, Store Data and Send Response
+    # Form Response and Send
     response = {
         "requestId":data["requestId"],
-        "latentVector": proposed_level_data["latentVectors"],
+        "latentVectors": proposed_level_data["latentVectors"],
         "experimentName":data["experimentName"],
         "levelRepresentation":proposed_level_data["levelRepresentation"]
     }
 
-    StoreInDatabase(request_data=data, response_data=response)
-    
     return jsonify(response)
 
 
