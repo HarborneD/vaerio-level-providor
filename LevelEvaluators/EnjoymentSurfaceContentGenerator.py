@@ -1,5 +1,10 @@
+#TODO: handle "could not finish"
+#TODO: handle "did not finish"
+    
+
 import json
 import random
+import requests
 
 import numpy as np
 import cv2
@@ -8,7 +13,7 @@ from numpy.lib.function_base import append
 import seaborn as sb
 import matplotlib.pyplot as plt
 
-from LevelSliceClient import GetLevelSlicesForVectors
+from .LevelSliceClient import GetLevelSlicesForVectors
 
 OUTPUT_IMAGES = False
 
@@ -30,6 +35,7 @@ class EnjoymentSurfaceContentGenerator():
         self.surface_shape = np.array([300, 300])
         self.update_redius_ratio = np.array([0.05, 0.05])
         self.update_strength = 0.05
+        self.personal_update_strength_multiplier = 10
 
         self.novelty_jump_scale =  0.5 # between 0 and 1
 
@@ -41,6 +47,8 @@ class EnjoymentSurfaceContentGenerator():
         self.update_shape = np.full(self.update_redius.astype(int).tolist(), self.update_strength)
 
         self.surface_cord_arrays = np.indices(self.surface_shape.astype(int).tolist())
+
+        self.BuildSurfaceFromFeedbackData()
  
  
     def UpdatePlayerRecords(self, player_request):
@@ -61,7 +69,7 @@ class EnjoymentSurfaceContentGenerator():
 
         for latent_vector in player_request["telemetry"]["latentVectors"]:
             self.UpdateSurfaceWithLatentSpaceLocation(latent_vector, player_request["telemetry"]["surveyResults"]["enjoyment"])
-            self.UpdateSurfaceWithLatentSpaceLocation(latent_vector, player_request["telemetry"]["surveyResults"]["enjoyment"], surfaceToUpdate=self.player_lookup[player_request["playerId"]])
+            self.UpdateSurfaceWithLatentSpaceLocation(latent_vector, player_request["telemetry"]["surveyResults"]["enjoyment"] * self.personal_update_strength_multiplier, surfaceToUpdate=self.player_lookup[player_request["playerId"]])
 
         if(OUTPUT_IMAGES):
             self.DisplaySurfaceUsingSeaborn(self.player_lookup[player_request["playerId"]], player_request["requestId"])
@@ -81,6 +89,7 @@ class EnjoymentSurfaceContentGenerator():
         heat_map_plot = sb.heatmap(surface, yticklabels=False, xticklabels=False)
         plt.savefig(f"images/{request_id}_player_surface.png")
         plt.clf()
+        heat_map_plot.close()
             
     
 
@@ -150,26 +159,26 @@ class EnjoymentSurfaceContentGenerator():
         return novelty_modifier
 
         
-    def GenerateLevel(self, player_request, show_old_and_new=False):
+    def GenerateLevel(self, request_data, show_old_and_new=False):
         CUTOFF_PERCENTAGE = 90
         NOVELTY_WEIGHTING = 0.7
 
-        self.UpdatePlayerRecords(player_request)
+        self.UpdatePlayerRecords(request_data)
 
         new_vectors_surface_space = []
 
-        for latent_vector_i, latent_vector in enumerate(player_request["telemetry"]["latentVectors"][:]):
-            request_id = player_request["requestId"]
-            novelty_modifier_matrix = self.GenerateNoveltyModifierMap(latent_vector, player_request["telemetry"]["surveyResults"]["desiredNovelty"])
+        for latent_vector_i, latent_vector in enumerate(request_data["telemetry"]["latentVectors"][:]):
+            request_id = request_data["requestId"]
+            novelty_modifier_matrix = self.GenerateNoveltyModifierMap(latent_vector, request_data["telemetry"]["surveyResults"]["desiredNovelty"])
             
             novelty_modifier_matrix = np.flip(novelty_modifier_matrix, axis=1)
             novelty_modifier_matrix = np.rot90(novelty_modifier_matrix, 1)
             
-            new_vector_distribution = (NOVELTY_WEIGHTING * novelty_modifier_matrix) + (1-NOVELTY_WEIGHTING)*self.player_lookup[player_request["playerId"]] 
+            new_vector_distribution = (NOVELTY_WEIGHTING * novelty_modifier_matrix) + (1-NOVELTY_WEIGHTING)*self.player_lookup[request_data["playerId"]] 
             if(OUTPUT_IMAGES):
                 new_vector_distribution_plot = sb.heatmap(new_vector_distribution, yticklabels=False, xticklabels=False)
                 plt.savefig(f"images/{request_id}_{latent_vector_i}_A-intial_distribution-.png")
-                plt.clf()
+                new_vector_distribution_plot.close()
 
             new_vector_distribution = new_vector_distribution + abs(np.min(new_vector_distribution)) # make probabilities non-negative
 
@@ -179,8 +188,7 @@ class EnjoymentSurfaceContentGenerator():
             if(OUTPUT_IMAGES):
                 new_vector_distribution_plot = sb.heatmap(new_vector_distribution, yticklabels=False, xticklabels=False)
                 plt.savefig(f"images/{request_id}_{latent_vector_i}_B-after-cutoff_distribution.png")
-                plt.clf()
-
+                new_vector_distribution_plot.close()
 
             new_vector_distribution /= new_vector_distribution.sum() #ensure probabilities add up to 1
 
@@ -191,16 +199,17 @@ class EnjoymentSurfaceContentGenerator():
             new_vectors_surface_space.append([new_vector[1], new_vector[0]])
         
         if(OUTPUT_IMAGES):
-            old_vectors_surface_space = [self.MapLatentSpacePointToSurfacePoint(v).tolist() for v in player_request["telemetry"]["latentVectors"]]
-            old_vectors_image, key = self.PlotVectorsOnSurface(old_vectors_surface_space, self.player_lookup[player_request["playerId"]])
-            new_vectors_image, key = self.PlotVectorsOnSurface(new_vectors_surface_space, self.player_lookup[player_request["playerId"]])
+            old_vectors_surface_space = [self.MapLatentSpacePointToSurfacePoint(v).tolist() for v in request_data["telemetry"]["latentVectors"]]
+            old_vectors_image, key = self.PlotVectorsOnSurface(old_vectors_surface_space, self.player_lookup[request_data["playerId"]])
+            new_vectors_image, key = self.PlotVectorsOnSurface(new_vectors_surface_space, self.player_lookup[request_data["playerId"]])
 
             f, axarr = plt.subplots(1,2)
             axarr[0].imshow(old_vectors_image)
             axarr[1].imshow(new_vectors_image)
-            plt.title("Novelty: " + str(player_request["telemetry"]["surveyResults"]["desiredNovelty"]))
+            plt.title("Novelty: " + str(request_data["telemetry"]["surveyResults"]["desiredNovelty"]))
             plt.savefig(f"images/{request_id}_old_new_vectors.png")
             plt.clf()
+            axarr.close()
         
         new_vectors = [self.MapSurfaceSpaceToLatentSpace(surface_space_vector).tolist() for surface_space_vector in new_vectors_surface_space]
         
@@ -255,29 +264,26 @@ class EnjoymentSurfaceContentGenerator():
             key_image[ 25:75, vector_i*50 + 30:(vector_i+1)*50 +25, : ] = list(COLOR_LIST[vector_i])
         
         return plot_image, key_image
-            
+        
 
+    def BuildSurfaceFromFeedbackData(self):
+        FEEDBACK_MAX = 5
 
+        half_feedback_max = FEEDBACK_MAX/2
 
-def BuildSurfaceFromFeedbackData(generator):
-    import requests
-    import uuid
+        dataset_url = "https://vaerio-level-providor.herokuapp.com/feedback"
 
-    FEEDBACK_MAX = 5
+        resp = requests.get(dataset_url)
+        feedbacks_json = resp.json()
 
-    half_feedback_max = FEEDBACK_MAX/2
-
-    dataset_url = "https://vaerio-level-providor.herokuapp.com/feedback"
-
-    resp = requests.get(dataset_url)
-    feedbacks_json = resp.json()
-
-    for feedback_json in feedbacks_json["feedbackItems"]:
-        for latent_vector in feedback_json["latent_vectors"]:
-            generator.UpdateSurfaceWithLatentSpaceLocation(latent_vector, feedback_json["enjoyment"]-half_feedback_max/half_feedback_max)
+        for feedback_json in feedbacks_json["feedbackItems"]:
+            for latent_vector in feedback_json["latent_vectors"]:
+                self.UpdateSurfaceWithLatentSpaceLocation(latent_vector, feedback_json["enjoyment"]-half_feedback_max/half_feedback_max)
 
 
 if __name__ == "__main__":
+    import uuid
+
     def UpdateTestReguest(request, new_level_dict):
         request["requestId"] = uuid.uuid4()
         request["telemetry"]["latentVectors"] = new_level_dict["latentVectors"]
@@ -286,13 +292,11 @@ if __name__ == "__main__":
         request["telemetry"]["surveyResults"]["desiredNovelty"] = random.choice([0.2,0.4,0.6,0.8,1])
         return request
 
-    import uuid
 
-    #TODO: handle could not finish
-    #TODO: handle did not finish
-    
+
     with open("test_data.json", "r") as f:
         test_level_data = json.loads(f.read())
+
 
     TEST_LEVEL_REQUEST = {
         "requestId":str(uuid.uuid4()),
@@ -312,18 +316,13 @@ if __name__ == "__main__":
         }
     }
 
-    
+    NUM_SIMULATED_PLAYER_REQUESTS = 50
+
     generator = EnjoymentSurfaceContentGenerator()
-    BuildSurfaceFromFeedbackData(generator)
-
+    
     new_level = generator.GenerateLevel(TEST_LEVEL_REQUEST, show_old_and_new=True)
 
-    new_request = UpdateTestReguest(TEST_LEVEL_REQUEST, new_level)
-    new_level = generator.GenerateLevel(TEST_LEVEL_REQUEST, show_old_and_new=True)
-
-    new_request = UpdateTestReguest(new_request, new_level)
-    new_level = generator.GenerateLevel(TEST_LEVEL_REQUEST, show_old_and_new=True)
-
-    new_request = UpdateTestReguest(new_request, new_level)
-    new_level = generator.GenerateLevel(TEST_LEVEL_REQUEST, show_old_and_new=True)
+    for i in range(NUM_SIMULATED_PLAYER_REQUESTS):
+        new_request = UpdateTestReguest(TEST_LEVEL_REQUEST, new_level)
+        new_level = generator.GenerateLevel(TEST_LEVEL_REQUEST, show_old_and_new=True)
 
