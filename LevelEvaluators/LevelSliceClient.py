@@ -7,7 +7,7 @@ def GetLevelSlicesForVectors(latent_vectors, experiment_name, generator_model_na
     response = urllib.request.urlopen(LEVEL_SLICE_CLIENT_URL.format(latent_vectors=latent_vectors, experiment_name=experiment_name, generator_model_name=generator_model_name).replace(" ","%20"))
     response_json = json.loads(response.read())
     if( isinstance(response_json, dict) ):
-        return response_json["LevelSliceRepresentation"]
+        return response_json["levelSliceRepresentation"]
     else:
         return response_json
 
