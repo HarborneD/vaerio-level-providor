@@ -112,4 +112,5 @@ venv.bak/
 *.iml
 
 images/*
+images_90/*
 images_99/*
