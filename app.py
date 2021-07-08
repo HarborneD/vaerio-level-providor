@@ -23,7 +23,7 @@ surfaceModel = EnjoymentSurfaceContentGenerator()
 
 level_generators = {
     random_model.name: random_model,
-    surfaceModel.name: surfaceModel,
+    # surfaceModel.name: surfaceModel,
 }
 
 max_player_memory = 2
