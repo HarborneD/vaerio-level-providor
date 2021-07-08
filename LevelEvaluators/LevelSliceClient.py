@@ -6,7 +6,10 @@ LEVEL_SLICE_CLIENT_URL = "https://mariovae.herokuapp.com/level?zs={latent_vector
 def GetLevelSlicesForVectors(latent_vectors, experiment_name, generator_model_name="mariovae_z_dim_2"):
     response = urllib.request.urlopen(LEVEL_SLICE_CLIENT_URL.format(latent_vectors=latent_vectors, experiment_name=experiment_name, generator_model_name=generator_model_name).replace(" ","%20"))
     response_json = json.loads(response.read())
-    return response_json["LevelSliceRepresentation"]
+    if( isinstance(response_json, dict) ):
+        return response_json["LevelSliceRepresentation"]
+    else:
+        return response_json
 
 if __name__ == "__main__":
     TEST_VECTORS = [[3.14, 3.14]]
