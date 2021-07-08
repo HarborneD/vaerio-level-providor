@@ -9,7 +9,7 @@ import psycopg2
 from db_interface import PlayerFeedbackTable
 
 from LevelEvaluators.RandomLevelGenerator import RandomLevelGenerator
-# from LevelEvaluators.EnjoymentSurfaceContentGenerator import EnjoymentSurfaceContentGenerator 
+from LevelEvaluators.EnjoymentSurfaceContentGenerator import EnjoymentSurfaceContentGenerator 
 
 
 app = Flask(__name__)
@@ -19,11 +19,11 @@ CORS(app)
 
 
 random_model = RandomLevelGenerator()
-# surfaceModel = EnjoymentSurfaceContentGenerator()
+surfaceModel = EnjoymentSurfaceContentGenerator()
 
 level_generators = {
     random_model.name: random_model,
-    # surfaceModel.name: surfaceModel,
+    surfaceModel.name: surfaceModel,
 }
 
 max_player_memory = 2

@@ -271,14 +271,17 @@ class EnjoymentSurfaceContentGenerator():
 
         half_feedback_max = FEEDBACK_MAX/2
 
-        dataset_url = "https://vaerio-level-providor.herokuapp.com/feedback"
+        try: 
+            dataset_url = "https://vaerio-level-providor.herokuapp.com/feedback"
 
-        resp = requests.get(dataset_url)
-        feedbacks_json = resp.json()
+            resp = requests.get(dataset_url)
+            feedbacks_json = resp.json()
 
-        for feedback_json in feedbacks_json["feedbackItems"]:
-            for latent_vector in feedback_json["latent_vectors"]:
-                self.UpdateSurfaceWithLatentSpaceLocation(latent_vector, feedback_json["enjoyment"]-half_feedback_max/half_feedback_max)
+            for feedback_json in feedbacks_json["feedbackItems"]:
+                for latent_vector in feedback_json["latent_vectors"]:
+                    self.UpdateSurfaceWithLatentSpaceLocation(latent_vector, feedback_json["enjoyment"]-half_feedback_max/half_feedback_max)
+        except Exception as e:
+            print("Could not fetch feedback data. ", e)
 
 
 if __name__ == "__main__":
