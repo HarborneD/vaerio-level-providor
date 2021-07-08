@@ -11,11 +11,10 @@ from db_interface import PlayerFeedbackTable
 from LevelEvaluators.RandomLevelGenerator import RandomLevelGenerator
 from LevelEvaluators.EnjoymentSurfaceContentGenerator import EnjoymentSurfaceContentGenerator 
 
+from config import postgres_user, postgres_pw
 
 app = Flask(__name__)
 CORS(app)
-
-
 
 
 random_model = RandomLevelGenerator()
@@ -41,7 +40,7 @@ except ModuleNotFoundError:
 db_url = os.environ["DATABASE_URL"]
 
 #Create the table
-db = psycopg2.connect(db_url)
+db = psycopg2.connect(db_url, user=postgres_user, password=postgres_pw)
 feedback_table_db = PlayerFeedbackTable(db)
 feedback_table_db.CreateTable()
 db.close()
@@ -160,7 +159,7 @@ def IsLevelValid(request_data, proposed_level_data):
 
 def StoreTelemetryInDatabase(request_data):
     if("telemetry" in request_data and len(request_data["telemetry"].keys()) > 0):
-        db = psycopg2.connect(db_url)
+        db = psycopg2.connect(db_url, user=postgres_user, password=postgres_pw)
         feedback_table_db = PlayerFeedbackTable(db)
         feedback_table_db.SaveFeedback(
         time.time(),
@@ -196,7 +195,7 @@ def landing():
 
 @app.route("/feedback")
 def feedback():
-    db = psycopg2.connect(db_url)
+    db = psycopg2.connect(db_url, user=postgres_user, password=postgres_pw)
     feedback_table_db = PlayerFeedbackTable(db)
     feedbackItems = feedback_table_db.GetAllItems()
     return feedbackItems

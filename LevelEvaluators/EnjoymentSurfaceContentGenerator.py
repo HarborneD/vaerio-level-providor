@@ -19,7 +19,7 @@ OUTPUT_IMAGES = False
 
 
 class EnjoymentSurfaceContentGenerator():
-    def __init__(self):
+    def __init__(self, initialiseSurface=False):
         self.name = "enjoyment-surface"
         self.generator_model_to_use = "mariovae_z_dim_2"
 
@@ -48,7 +48,8 @@ class EnjoymentSurfaceContentGenerator():
 
         self.surface_cord_arrays = np.indices(self.surface_shape.astype(int).tolist())
 
-        self.BuildSurfaceFromFeedbackData()
+        if(initialiseSurface):
+            self.BuildSurfaceFromFeedbackData()
  
  
     def UpdatePlayerRecords(self, player_request):

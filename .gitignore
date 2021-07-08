@@ -114,3 +114,5 @@ venv.bak/
 images/*
 images_90/*
 images_99/*
+
+config.py
