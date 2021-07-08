@@ -7,7 +7,7 @@ import random
 import requests
 
 import numpy as np
-import cv2
+# import cv2
 from numpy.lib.function_base import append 
 
 import seaborn as sb
@@ -76,12 +76,12 @@ class EnjoymentSurfaceContentGenerator():
             self.DisplaySurfaceUsingSeaborn(self.player_lookup[player_request["playerId"]], player_request["requestId"])
 
 
-    def DisplaySurface(self, surface=None):
-        if(surface is None):
-            surface = self.surface
-        cv2.imshow("Enjoyment Surface", surface)
-        cv2.waitKey(0)
-        cv2.destroyAllWindows()
+    # def DisplaySurface(self, surface=None):
+    #     if(surface is None):
+    #         surface = self.surface
+    #     cv2.imshow("Enjoyment Surface", surface)
+    #     cv2.waitKey(0)
+    #     cv2.destroyAllWindows()
     
 
     def DisplaySurfaceUsingSeaborn(self, surface=None, request_id=""):
@@ -222,49 +222,48 @@ class EnjoymentSurfaceContentGenerator():
         }
 
 
-    def PlotVectorsOnSurface(self, vectors, surfaceToUse):
-        plot_image = cv2.cvtColor(surfaceToUse.copy().astype('float32'), cv2.COLOR_GRAY2RGB)
+    # def PlotVectorsOnSurface(self, vectors, surfaceToUse):
+    #     plot_image = cv2.cvtColor(surfaceToUse.copy().astype('float32'), cv2.COLOR_GRAY2RGB)
+    #     COLOR_LIST = [
+    #         (256, 0, 0),
+    #         (0, 256, 0),
+    #         (0, 0, 256),
+    #         (256, 256, 0),
+    #         (0, 256, 256),
+    #         # (255, 0, 86),
+    #         # (158, 0, 142),
+    #         # (14, 76, 161),
+    #         # (255, 229, 2),
+    #         # (0, 95, 57),
+    #         # (0, 255, 0),
+    #         # (149, 0, 58),
+    #         # (255, 147, 126),
+    #         (164, 36, 0),
+    #         (0, 21, 68),
+    #         (145, 208, 203),
+    #         (98, 14, 0),
+    #         (107, 104, 130),
+    #         (0, 0, 255),
+    #         (0, 125, 181),
+    #         (106, 130, 108),
+    #         (0, 174, 126),
+    #         (194, 140, 159),
+    #         (190, 153, 112),
+    #         (0, 143, 156),
+    #         (95, 173, 78),
+    #         (255, 0, 0),
+    #         (255, 0, 246),
+    #         (255, 2, 157),
+    #     ]
 
-        COLOR_LIST = [
-            (256, 0, 0),
-            (0, 256, 0),
-            (0, 0, 256),
-            (256, 256, 0),
-            (0, 256, 256),
-            # (255, 0, 86),
-            # (158, 0, 142),
-            # (14, 76, 161),
-            # (255, 229, 2),
-            # (0, 95, 57),
-            # (0, 255, 0),
-            # (149, 0, 58),
-            # (255, 147, 126),
-            (164, 36, 0),
-            (0, 21, 68),
-            (145, 208, 203),
-            (98, 14, 0),
-            (107, 104, 130),
-            (0, 0, 255),
-            (0, 125, 181),
-            (106, 130, 108),
-            (0, 174, 126),
-            (194, 140, 159),
-            (190, 153, 112),
-            (0, 143, 156),
-            (95, 173, 78),
-            (255, 0, 0),
-            (255, 0, 246),
-            (255, 2, 157),
-        ]
+    #     key_image = np.zeros( (100, len(vectors)*60 + 50, 3))
 
-        key_image = np.zeros( (100, len(vectors)*60 + 50, 3))
+    #     for vector_i, vector in enumerate(vectors):
+    #         plot_image = cv2.circle(plot_image, vector, 5, COLOR_LIST[vector_i], 2)
 
-        for vector_i, vector in enumerate(vectors):
-            plot_image = cv2.circle(plot_image, vector, 5, COLOR_LIST[vector_i], 2)
-
-            key_image[ 25:75, vector_i*50 + 30:(vector_i+1)*50 +25, : ] = list(COLOR_LIST[vector_i])
+    #         key_image[ 25:75, vector_i*50 + 30:(vector_i+1)*50 +25, : ] = list(COLOR_LIST[vector_i])
         
-        return plot_image, key_image
+    #     return plot_image, key_image
         
 
     def BuildSurfaceFromFeedbackData(self):
