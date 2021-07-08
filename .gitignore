@@ -110,3 +110,6 @@ venv.bak/
 # PyCharm
 .idea
 *.iml
+
+images/*
+images_99/*
