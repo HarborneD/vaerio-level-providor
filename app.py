@@ -16,8 +16,6 @@ app = Flask(__name__)
 CORS(app)
 
 
-
-
 random_model = RandomLevelGenerator()
 surfaceModel = EnjoymentSurfaceContentGenerator()
 

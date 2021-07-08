@@ -66,14 +66,14 @@ class EnjoymentSurfaceContentGenerator():
         if(len(self.player_queue) > self.max_player_memory):
             removed_player = self.player_queue.pop(0)
             self.player_lookup.pop(removed_player, None)
-        
 
-        for latent_vector in player_request["telemetry"]["latentVectors"]:
-            self.UpdateSurfaceWithLatentSpaceLocation(latent_vector, player_request["telemetry"]["surveyResults"]["enjoyment"])
-            self.UpdateSurfaceWithLatentSpaceLocation(latent_vector, player_request["telemetry"]["surveyResults"]["enjoyment"] * self.personal_update_strength_multiplier, surfaceToUpdate=self.player_lookup[player_request["playerId"]])
+        if("telemetry" in player_request and len(player_request["telemetry"]) > 0 ):
+            for latent_vector in player_request["telemetry"]["latentVectors"]:
+                self.UpdateSurfaceWithLatentSpaceLocation(latent_vector, player_request["telemetry"]["surveyResults"]["enjoyment"])
+                self.UpdateSurfaceWithLatentSpaceLocation(latent_vector, player_request["telemetry"]["surveyResults"]["enjoyment"] * self.personal_update_strength_multiplier, surfaceToUpdate=self.player_lookup[player_request["playerId"]])
 
-        if(OUTPUT_IMAGES):
-            self.DisplaySurfaceUsingSeaborn(self.player_lookup[player_request["playerId"]], player_request["requestId"])
+            if(OUTPUT_IMAGES):
+                self.DisplaySurfaceUsingSeaborn(self.player_lookup[player_request["playerId"]], player_request["requestId"])
 
 
     # def DisplaySurface(self, surface=None):
@@ -159,11 +159,11 @@ class EnjoymentSurfaceContentGenerator():
 
         return novelty_modifier
 
-        
-    def GenerateLevel(self, request_data, show_old_and_new=False):
+
+    def GenerateLevelUsingTelemetry(self, request_data, show_old_and_new=False):
         CUTOFF_PERCENTAGE = 90
         NOVELTY_WEIGHTING = 0.7
-
+        
         self.UpdatePlayerRecords(request_data)
 
         new_vectors_surface_space = []
@@ -211,7 +211,46 @@ class EnjoymentSurfaceContentGenerator():
             plt.savefig(f"images/{request_id}_old_new_vectors.png")
             plt.clf()
             axarr.close()
+    
+        new_vectors = [self.MapSurfaceSpaceToLatentSpace(surface_space_vector).tolist() for surface_space_vector in new_vectors_surface_space]
+
+        level_representation = GetLevelSlicesForVectors(latent_vectors=new_vectors, experiment_name=self.name, generator_model_name=self.generator_model_to_use)
+
+        return {
+            "latentVectors":new_vectors,
+            "levelRepresentation":level_representation
+        }
+
         
+    def GenerateLevel(self, request_data, show_old_and_new=False):
+        CUTOFF_PERCENTAGE = 90
+        NUM_VECTORS = 5
+        
+        self.UpdatePlayerRecords(request_data)
+
+        if("telemetry" in request_data and len(request_data["telemetry"]) > 0):
+            return self.GenerateLevelUsingTelemetry(request_data, show_old_and_new=show_old_and_new)
+        
+        else:
+            new_vectors_surface_space = []
+
+            for latent_vector_i in range(NUM_VECTORS):
+                new_vector_distribution = self.player_lookup[request_data["playerId"]]
+                
+                new_vector_distribution = new_vector_distribution + abs(np.min(new_vector_distribution)) # make probabilities non-negative
+
+                
+                cutoff = np.percentile(new_vector_distribution, CUTOFF_PERCENTAGE)
+                new_vector_distribution[new_vector_distribution<cutoff] = 0
+                
+                new_vector_distribution /= new_vector_distribution.sum() #ensure probabilities add up to 1
+
+                flat_index=np.random.choice( np.array(list(range(0, new_vector_distribution.shape[0] * new_vector_distribution.shape[1]))), 1, p=new_vector_distribution.flatten())
+
+                new_vector = np.array(np.unravel_index(flat_index , new_vector_distribution.shape)).astype(int).tolist()
+                new_vector = [item for sublist in new_vector for item in sublist]
+                new_vectors_surface_space.append([new_vector[1], new_vector[0]])
+            
         new_vectors = [self.MapSurfaceSpaceToLatentSpace(surface_space_vector).tolist() for surface_space_vector in new_vectors_surface_space]
         
         level_representation = GetLevelSlicesForVectors(latent_vectors=new_vectors, experiment_name=self.name, generator_model_name=self.generator_model_to_use)
