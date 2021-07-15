@@ -13,7 +13,10 @@ from numpy.lib.function_base import append
 import seaborn as sb
 import matplotlib.pyplot as plt
 
-from .LevelSliceClient import GetLevelSlicesForVectors
+try:
+    from .LevelSliceClient import GetLevelSlicesForVectors
+except: 
+    from LevelSliceClient import GetLevelSlicesForVectors
 
 OUTPUT_IMAGES = False
 
@@ -28,8 +31,8 @@ class EnjoymentSurfaceContentGenerator():
         self.player_queue = []
 
         self.latent_dimension_bounds = np.array([
-            (-10, -10),
-            (10, 10)
+            (-5, -5),
+            (5, 5)
         ])
 
         self.surface_shape = np.array([300, 300])
@@ -37,7 +40,7 @@ class EnjoymentSurfaceContentGenerator():
         self.update_strength = 0.05
         self.personal_update_strength_multiplier = 10
 
-        self.novelty_jump_scale =  0.5 # between 0 and 1
+        self.novelty_jump_scale =  0.25 # between 0 and 1
 
 
         self.latent_to_surface_multiplier = 1 / (self.latent_dimension_bounds[1] - self.latent_dimension_bounds[0])
@@ -90,7 +93,6 @@ class EnjoymentSurfaceContentGenerator():
         heat_map_plot = sb.heatmap(surface, yticklabels=False, xticklabels=False)
         plt.savefig(f"images/{request_id}_player_surface.png")
         plt.clf()
-        heat_map_plot.close()
             
     
 
@@ -110,7 +112,15 @@ class EnjoymentSurfaceContentGenerator():
         target_array[wall_slices] += shape[block_slices]
 
 
+    def IsPointOutsideOfSurface(self, point):
+        less_than_zero_count = np.sum(point<0)
+        too_big_points = point > self.surface_shape
+        return less_than_zero_count > 0 or np.sum(too_big_points) > 0
+
     def UpdateSurface(self, point, value, surfaceToUpdate=None):
+        if(self.IsPointOutsideOfSurface(point)):
+            return None
+        
         update_point = (point[0] - int(self.update_redius[0] / 2), point[1] - int(self.update_redius[1] / 2))
         if(surfaceToUpdate is None):
             self.AddShapeValuesToArrayLocation( self.surface, value * self.update_shape, update_point )
@@ -179,7 +189,7 @@ class EnjoymentSurfaceContentGenerator():
             if(OUTPUT_IMAGES):
                 new_vector_distribution_plot = sb.heatmap(new_vector_distribution, yticklabels=False, xticklabels=False)
                 plt.savefig(f"images/{request_id}_{latent_vector_i}_A-intial_distribution-.png")
-                new_vector_distribution_plot.close()
+                plt.clf()
 
             new_vector_distribution = new_vector_distribution + abs(np.min(new_vector_distribution)) # make probabilities non-negative
 
@@ -189,7 +199,7 @@ class EnjoymentSurfaceContentGenerator():
             if(OUTPUT_IMAGES):
                 new_vector_distribution_plot = sb.heatmap(new_vector_distribution, yticklabels=False, xticklabels=False)
                 plt.savefig(f"images/{request_id}_{latent_vector_i}_B-after-cutoff_distribution.png")
-                new_vector_distribution_plot.close()
+                plt.clf()
 
             new_vector_distribution /= new_vector_distribution.sum() #ensure probabilities add up to 1
 
@@ -210,7 +220,6 @@ class EnjoymentSurfaceContentGenerator():
             plt.title("Novelty: " + str(request_data["telemetry"]["surveyResults"]["desiredNovelty"]))
             plt.savefig(f"images/{request_id}_old_new_vectors.png")
             plt.clf()
-            axarr.close()
     
         new_vectors = [self.MapSurfaceSpaceToLatentSpace(surface_space_vector).tolist() for surface_space_vector in new_vectors_surface_space]
 
@@ -317,8 +326,8 @@ class EnjoymentSurfaceContentGenerator():
             feedbacks_json = resp.json()
 
             # filter to friday morning (to remove all test data)
-            feedbacks_json = [feedback_json for feedback_json in feedbacks_json["feedbackItems"] if feedback_json["timestamp"] >= 1625817219]
-
+            feedbacks_json["feedbackItems"] = [feedback_json for feedback_json in feedbacks_json["feedbackItems"] if feedback_json["timestamp"] >= 1625817219]
+            print("Trainign on " + str(len(feedbacks_json["feedbackItems"])) + " feedback items.")
             for feedback_json in feedbacks_json["feedbackItems"]:
                 for latent_vector in feedback_json["latent_vectors"]:
                     self.UpdateSurfaceWithLatentSpaceLocation(latent_vector, feedback_json["enjoyment"]-half_feedback_max/half_feedback_max)
@@ -363,7 +372,7 @@ if __name__ == "__main__":
 
     NUM_SIMULATED_PLAYER_REQUESTS = 50
 
-    generator = EnjoymentSurfaceContentGenerator()
+    generator = EnjoymentSurfaceContentGenerator(initialiseSurface=True)
     
     new_level = generator.GenerateLevel(TEST_LEVEL_REQUEST, show_old_and_new=True)
 
